@@ -56,10 +56,8 @@ set paste
 " Define a custom command to compile and open the PDF
 command! -nargs=0 Compile call Compile()
 
-
 " Custom function to trigger compilation through Python
 function! Compile()
-
 
     " Switch to the top window (document.tex)
     wincmd k
@@ -67,11 +65,14 @@ function! Compile()
     " Save the current document.tex file
     w
 
-    " Optionally, you can display a message or perform other actions
-    echo "Compiling LaTeX..."
+	let l:tex_file = FindRootDocument()
 
-	" Get the absolute path to the file name of the current edited TeX document
-    let l:tex_file = expand('%:p')
+	if l:tex_file == "" 
+		return
+	endif
+
+    " Optionally, you can display a message or perform other actions
+    echo "LaTeX compiling: " . fnamemodify(l:tex_file, ':t') . "..."
 
 	" Get the absolute path to the current working directory
 	let l:cwd = getcwd()
@@ -79,7 +80,7 @@ function! Compile()
     call system('python ~/.vim_server.py ' . l:tex_file . ' ' . l:cwd)
 
 	try
-		let logfile = expand('%:r') . '.log'
+		let logfile = l:tex_file[:-5] . '.log'
 		call ParseLaTeXLog(logfile)
 		resize 4
 	catch /E484/
@@ -90,10 +91,9 @@ function! Compile()
     echo "Compilation Complete."
 
     " Simulate pressing Enter to return to normal mode
-    call feedkeys("\<CR>")
+    "call feedkeys("\<CR>")
 
 endfunction
-
 
 
 function! ParseLaTeXLog(logfile)
@@ -120,4 +120,20 @@ function! ParseLaTeXLog(logfile)
     if len(quickfix_list) > 0
         copen
     endif
+endfunction
+
+
+function! FindRootDocument()
+	"let current_file = expand("%")  " Get the current buffer's file name
+	let tex = glob("./*.tex")  " Search for .tex files in the current directory
+
+	if empty(tex)
+  		echo "No .tex file found in the project root directory."
+		target = ""
+	else
+  		let path = fnamemodify(tex[0], ":p")  " Get the absolute path of the .tex file
+		let name = tex[2:]  " Get the file name
+		let l:target = path . name
+	endif
+	return l:target
 endfunction
